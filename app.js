@@ -10,7 +10,7 @@ const MODI = {
 
 let db = carica();
 let modo = 'carico';
-let lettore = null;
+let stream = null;
 let ultimoCodice = '';
 let ultimoTempo = 0;
 let eanInModifica = null;
@@ -226,35 +226,62 @@ function impostaModo(m) {
 $$('#modi button').forEach((b) => b.addEventListener('click', () => impostaModo(b.dataset.modo)));
 impostaModo('carico');
 
+const FORMATI = ['EAN-13', 'EAN-8', 'UPC-A', 'UPC-E', 'Code128'];
+let ciclo = null;
+let occupato = false;
+let canvas = null;
+
 async function avviaCamera() {
-  if (typeof ZXing === 'undefined') { $('#msg-scan').textContent = 'Libreria di scansione non caricata.'; return; }
+  if (typeof ZXingWASM === 'undefined') { $('#msg-scan').textContent = 'Libreria di scansione non caricata.'; return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     $('#msg-scan').textContent = 'Fotocamera non disponibile: serve una connessione HTTPS.'; return;
   }
   fermaCamera();
-  const formati = [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8, ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E, ZXing.BarcodeFormat.CODE_128];
-  const hints = new Map([[ZXing.DecodeHintType.POSSIBLE_FORMATS, formati], [ZXing.DecodeHintType.TRY_HARDER, true]]);
-  lettore = new ZXing.BrowserMultiFormatReader(hints, 300);
-  $('#msg-scan').textContent = 'Inquadra il codice a barre…';
-  $('#btn-camera').textContent = 'Ferma fotocamera';
+  ZXingWASM.setZXingModuleOverrides({ locateFile: (f, prefisso) => (f.endsWith('.wasm') ? 'lib/' + f : prefisso + f) });
+  $('#msg-scan').textContent = 'Avvio fotocamera…';
   try {
-    await lettore.decodeFromConstraints(
-      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
-      $('#video'),
-      (risultato) => { if (risultato) trovatoCodice(risultato.getText()); }
-    );
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false
+    });
+    const v = $('#video');
+    v.srcObject = stream;
+    await v.play();
+    $('#btn-camera').textContent = 'Ferma fotocamera';
+    $('#msg-scan').textContent = 'Inquadra il codice a barre…';
+    ciclo = setInterval(leggiFotogramma, 250);
   } catch (err) {
+    fermaCamera();
     $('#msg-scan').textContent = 'Impossibile usare la fotocamera: controlla i permessi di Safari.';
-    $('#btn-camera').textContent = 'Avvia fotocamera';
   }
 }
+async function leggiFotogramma() {
+  const v = $('#video');
+  if (occupato || !stream || !v.videoWidth || $('#dlg-prodotto').open) return;
+  occupato = true;
+  try {
+    // ritaglia la fascia centrale del fotogramma alla risoluzione originale
+    const w = v.videoWidth, h = Math.round(v.videoHeight * 0.5), y = Math.round((v.videoHeight - h) / 2);
+    canvas ||= document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(v, 0, y, w, h, 0, 0, w, h);
+    const risultati = await ZXingWASM.readBarcodes(ctx.getImageData(0, 0, w, h), { formats: FORMATI, tryHarder: true, maxNumberOfSymbols: 1 });
+    const ok = risultati.find((r) => r.isValid && r.text);
+    if (ok) trovatoCodice(ok.text);
+  } catch (err) {
+    $('#msg-scan').textContent = 'Errore di lettura: ' + (err && err.message ? err.message : err);
+  } finally { occupato = false; }
+}
 function fermaCamera() {
-  if (lettore) { try { lettore.reset(); } catch (e) { /* già fermo */ } lettore = null; }
+  clearInterval(ciclo); ciclo = null;
+  if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+  const v = $('#video');
+  if (v) v.srcObject = null;
   const b = $('#btn-camera');
   if (b) b.textContent = 'Avvia fotocamera';
 }
 function riprendiScan() { ultimoTempo = Date.now(); }
-$('#btn-camera').addEventListener('click', () => (lettore ? fermaCamera() : avviaCamera()));
+$('#btn-camera').addEventListener('click', () => (stream ? fermaCamera() : avviaCamera()));
 $('#form-codice').addEventListener('submit', (e) => {
   e.preventDefault();
   const c = $('#codice-manuale').value.replace(/\D/g, '');

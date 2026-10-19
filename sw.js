@@ -1,5 +1,5 @@
-const CACHE = 'dispensa-v1';
-const FILE = ['./', 'index.html', 'app.js', 'style.css', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'lib/zxing.min.js'];
+const CACHE = 'dispensa-v2';
+const FILE = ['./', 'index.html', 'app.js', 'style.css', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'lib/zxing-reader.iife.js', 'lib/zxing_reader.wasm'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILE)).then(() => self.skipWaiting()));
