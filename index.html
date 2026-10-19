@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f7d4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dispensa">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<title>Dispensa &amp; Spesa</title>
+</head>
+<body>
+
+<header>
+  <h1 id="titolo">Dispensa</h1>
+</header>
+
+<main>
+  <section id="vista-dispensa" class="vista">
+    <input id="cerca" type="search" placeholder="Cerca in dispensa…" autocomplete="off">
+    <div id="elenco-dispensa"></div>
+    <button class="fab" id="btn-aggiungi-manuale" title="Aggiungi prodotto">+</button>
+  </section>
+
+  <section id="vista-spesa" class="vista" hidden>
+    <form id="form-spesa" class="riga-form">
+      <input id="spesa-nome" type="text" placeholder="Aggiungi alla spesa…" autocomplete="off">
+      <button type="submit" class="primario">Aggiungi</button>
+    </form>
+    <div id="suggeriti"></div>
+    <div id="elenco-spesa"></div>
+    <button id="btn-fine-spesa" class="primario largo" hidden>Fine spesa: sposta spuntati in dispensa</button>
+  </section>
+
+  <section id="vista-scan" class="vista" hidden>
+    <div class="modi" id="modi">
+      <button data-modo="carico" class="attivo">Carico</button>
+      <button data-modo="consumo">Consumo</button>
+      <button data-modo="spesa">Alla spesa</button>
+    </div>
+    <p id="descr-modo" class="nota"></p>
+    <div class="video-box">
+      <video id="video" playsinline muted></video>
+      <div class="mirino"></div>
+    </div>
+    <div class="riga-form">
+      <button id="btn-camera" class="primario">Avvia fotocamera</button>
+    </div>
+    <form id="form-codice" class="riga-form">
+      <input id="codice-manuale" type="text" inputmode="numeric" placeholder="Oppure digita il codice a barre" autocomplete="off">
+      <button type="submit">Cerca</button>
+    </form>
+    <p id="msg-scan" class="nota"></p>
+  </section>
+
+  <section id="vista-impostazioni" class="vista" hidden>
+    <h2>Backup</h2>
+    <p class="nota">I dati sono salvati solo su questo dispositivo. Esporta un backup ogni tanto.</p>
+    <div class="riga-form">
+      <button id="btn-export" class="primario">Esporta backup</button>
+      <button id="btn-import">Importa backup</button>
+      <input id="file-import" type="file" accept="application/json" hidden>
+    </div>
+    <h2>Informazioni</h2>
+    <p id="statistiche" class="nota"></p>
+    <p class="nota">Nomi dei prodotti da Open Food Facts (database libero). Se un codice non è presente, inseriscilo a mano una volta sola.</p>
+    <button id="btn-azzera" class="pericolo">Cancella tutti i dati</button>
+  </section>
+</main>
+
+<nav id="tabbar">
+  <button data-vista="dispensa" class="attivo"><span>🥫</span>Dispensa</button>
+  <button data-vista="spesa"><span>🛒</span>Spesa <b id="badge-spesa" hidden></b></button>
+  <button data-vista="scan"><span>📷</span>Scansiona</button>
+  <button data-vista="impostazioni"><span>⚙️</span>Altro</button>
+</nav>
+
+<dialog id="dlg-prodotto">
+  <form method="dialog" id="form-prodotto">
+    <h3 id="dlg-titolo">Prodotto</h3>
+    <label>Codice a barre<input id="p-ean" type="text" inputmode="numeric"></label>
+    <label>Nome<input id="p-nome" type="text" required></label>
+    <label>Marca<input id="p-marca" type="text"></label>
+    <label>Categoria<select id="p-categoria"></select></label>
+    <div class="due-col">
+      <label>Quantità<input id="p-qta" type="number" min="0" step="1" value="1"></label>
+      <label>Scorta minima<input id="p-scorta" type="number" min="0" step="1" value="0"></label>
+    </div>
+    <label>Scadenza (opzionale)<input id="p-scadenza" type="date"></label>
+    <div class="azioni">
+      <button type="button" id="p-elimina" class="pericolo" hidden>Elimina</button>
+      <button type="button" id="p-annulla">Annulla</button>
+      <button type="submit" class="primario">Salva</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status"></div>
+
+<script src="lib/zxing.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
